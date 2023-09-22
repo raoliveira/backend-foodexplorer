@@ -1,7 +1,6 @@
 const { hash, compare } = require("bcryptjs");
 const AppError = require("../utils/AppError");
 
-//const sqliteConnection = require("../database/sqlite");
 const knex = require("../database/knex");
 
 
@@ -31,16 +30,19 @@ class UsersController {
 
     async update(request, response) {
         const { name, email, password, old_password, isAdmin } = request.body
-        const { id } = request.params
+        
+        const user_id = request.user.id;
+        //const { id } = request.params
 
         
-        const user = await knex("users").where( { id } ).first()
+        const user = await knex("users").where( { id: user_id } ).first()
+        //console.log('user ', user);
 
         if (!user) {
             throw new AppError("Usuário não encontrado");
         }
 
-        const userWithUpdatedEmail = await knex("users").whereNot({ id }).andWhere({ email }).first()
+        const userWithUpdatedEmail = await knex("users").whereNot({ id: user_id }).andWhere({ email }).first()
 
         if (userWithUpdatedEmail && userWithUpdatedEmail.id !== user.id) {
             throw new AppError("Este e-mail já está em uso!");
@@ -51,7 +53,7 @@ class UsersController {
         user.isAdmin = isAdmin ?? user.isAdmin;
 
         if (password && !old_password) {
-            throw new AppError("Você precisa informar a senha antiga para definir a nova senha")
+            throw new AppError("Você precisa informar a senha antiga para definir a nova senha.")
         }
 
         if (password && old_password) {
@@ -64,7 +66,7 @@ class UsersController {
             user.password = await hash(password, 8)
         }
 
-        await knex("users").where({ id }).update({
+        await knex("users").where({ id: user_id }).update({
             name: user.name,
             email: user.email,
             password: user.password,
